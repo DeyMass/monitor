@@ -62,9 +62,15 @@ void PopUp::paintEvent(QPaintEvent *event)
 	painter.drawRoundedRect(roundedRect, 10, 10);
 }
 
+void PopUp::setTextStyle(QString style)
+{
+	label.setStyleSheet(style);
+}
+
 void PopUp::setPopupText(const QString &text)
 {
 	label.setText(text);    // Устанавливаем текст в Label
+	label.setStyleSheet("color: #FFFFFF; font-size: 144px; font-family: 'Comic Sans MS'");
 	adjustSize();           // С пересчётом размеров уведомления
 }
 

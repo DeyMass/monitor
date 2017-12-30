@@ -22,11 +22,11 @@ protected:
 	void paintEvent(QPaintEvent *event);    // Фон будет отрисовываться через метод перерисовки
 
 public slots:
+	void setTextStyle(QString style);
 	void setPopupText(const QString& text); // Установка текста в уведомление
 	void show();                            /* Собственный метод показа виджета
 											 * Необходимо для преварительной настройки анимации
 											 * */
-
 private slots:
 	void hideAnimation();                   // Слот для запуска анимации скрытия
 	void hide();                            /* По окончании анимации, в данном слоте делается проверка,

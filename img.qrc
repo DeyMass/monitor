@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/img">
+        <file>rsrc/img/serverDown.jpg</file>
+        <file>rsrc/img/serverSync.jpg</file>
+        <file>rsrc/img/serverUp.jpg</file>
+    </qresource>
+    <qresource prefix="/music">
+        <file>rsrc/music/start.mp3</file>
+        <file>rsrc/music/stop.mp3</file>
+    </qresource>
+</RCC>

@@ -1,6 +1,10 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "popup.h"
+#include <QMediaPlayer>
+#include <QFile>
+#include <QDir>
 #include <QMainWindow>
 #include <QTcpSocket>
 #include <QDebug>
@@ -9,9 +13,12 @@
 #include <QSqlRecord>
 #include <QSqlTableModel>
 #include <QTableWidget>
+#include <QSystemTrayIcon>
 
 #define BORDER		70
 #define OR			||
+
+#define SERVER_UNKN -1
 #define SERVER_DOWN 0
 #define SERVER_UP	1
 #define SERVER_UML	2
@@ -29,11 +36,15 @@ public:
     ~MainWindow();
 
 private:
-	QPixmap *stopped;
-	QPixmap *working;
-	QPixmap *updatin;
 	int serverStatus;
 	QTcpSocket *request;
+	PopUp *field;
+	QMediaPlayer *player;
+	QSystemTrayIcon *tray;
+	QIcon *icoUp;
+	QIcon *icoDown;
+	QIcon *icoUml;
+	QIcon *icoUnknown;
 
     Ui::MainWindow *ui;
     QString readName(int *pos, QString response);
@@ -43,6 +54,7 @@ private:
     void parse(QString response);
 	void messageCreate(QString msg);
 	void playSound(QUrl src);
+	void stateChanged(int newState);
 
 private slots:
     void reconnect();

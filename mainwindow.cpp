@@ -1,18 +1,13 @@
 #include "mainwindow.h"
+#include <QMessageBox>
 #include "ui_mainwindow.h"
-#include "popup.h"
-#include <QMediaPlayer>
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
 	ui(new Ui::MainWindow)
 {
-	serverStatus = SERVER_DOWN;
+	serverStatus = SERVER_UNKN;
 	ui->setupUi(this);
-
-	stopped = new QPixmap(":/img/rsrc/img/serverDown.jpg");
-	working = new QPixmap(":/img/rsrc/img/serverUp.jpg");
-	updatin = new QPixmap(":/img/rsrc/img/serverSync.jpg");
 
 	request = new QTcpSocket();
 	connect(request, SIGNAL(readyRead()),this,SLOT(readyRead()));
@@ -21,12 +16,28 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	QTimer *reconnect = new QTimer;
 	connect(reconnect, SIGNAL(timeout()), this, SLOT(reconnect()));
-	reconnect->start(5000);
+	reconnect->start(1000);
 	QTimer *resize = new QTimer();
 	connect(resize, SIGNAL(timeout()), this, SLOT(resize()));
 	resize->start(125);
 
 	MainWindow::reconnect();
+	field = new PopUp;
+	player = new QMediaPlayer();
+	tray = new QSystemTrayIcon();
+	QPixmap *pic;
+	pic = new QPixmap(":/img/rsrc/img/trayUNKNOWN.jpg");
+	icoUnknown = new QIcon(pic->scaled(25,25));
+	pic = new QPixmap(":/img/rsrc/img/trayOK.jpg");
+	icoUp = new QIcon(pic->scaled(25,25));
+	pic = new QPixmap(":/img/rsrc/img/trayUML.jpg");
+	icoUml = new QIcon(pic->scaled(25,25));
+	pic = new QPixmap(":/img/rsrc/img/trayDOWN.jpg");
+	icoDown = new QIcon(pic->scaled(25,25));
+
+	tray->setIcon(*icoUnknown);
+	tray->show();
+	delete pic;
 }
 
 void MainWindow::resize(){
@@ -49,52 +60,66 @@ void MainWindow::connected(){
 				   "Host: reg154.point.at-sibir.ru");
 }
 
+void MainWindow::stateChanged(int newState)
+{
+	switch (newState) {
+	case SERVER_UNKN:
+		tray->setIcon(*icoUnknown);
+		break;
+	case SERVER_UP:
+		tray->setIcon(*icoUp);
+		ui->statusPic->setText("OK");
+		ui->statusPic->setStyleSheet("color: #00FF00");
+		messageCreate("Server is back online");
+		playSound(QUrl::fromLocalFile(QDir::currentPath() + "/start.mp3"));
+		break;
+	case SERVER_UML:
+		tray->setIcon(*icoUml);
+		ui->statusPic->setText("UML_SYNC");
+		ui->statusPic->setStyleSheet("color: #FFFF00; background: #999999");
+		messageCreate("UML Synchronization started");
+		playSound(QUrl::fromLocalFile(QDir::currentPath() + "/uml.mp3"));
+		break;
+	case SERVER_DOWN:
+		tray->setIcon(*icoDown);
+		ui->statusPic->setText("DOWN");
+		ui->statusPic->setStyleSheet("color: #FF0000");
+		messageCreate("Server is shutted down");
+		playSound(QUrl::fromLocalFile(QDir::currentPath() + "/stop.mp3"));
+	default:
+		break;
+	}
+	serverStatus = newState;
+}
 void MainWindow::readyRead(){
 	QString response = request->readAll();
-
 	if (response.contains("Workflow")){
-		ui->statusPic->setText("OK");
-		ui->statusPic->setStyleSheet("color: green");
-		if (serverStatus != SERVER_UP){
-			serverStatus = SERVER_UP;
-			messageCreate("Server is back online");
-			playSound(QUrl::fromLocalFile("start.mp3"));
-		}
+		if (serverStatus != SERVER_UP)
+			stateChanged(SERVER_UP);
 		parse(response);
 	}
 	else
 		if (response.contains("UML")){
-			if (serverStatus != SERVER_UML){
-				serverStatus = SERVER_UML;
-				ui->statusPic->setText("UML_SYNC");
-				ui->statusPic->setStyleSheet("color: yellow");
-				messageCreate("UML Synchronization started");
-				playSound(QUrl::fromLocalFile("uml.mp3"));
-			}
-			ui->statusPic->setPixmap(updatin->scaled(25,25));
+			if (serverStatus != SERVER_UML)
+				stateChanged(SERVER_UML);
 		}
 		else{
-			if (serverStatus != SERVER_DOWN){
-				serverStatus = SERVER_DOWN;
-				ui->statusPic->setText("DOWN");
-				ui->statusPic->setStyleSheet("color: red");
-				messageCreate("Server is shutted down");
-				playSound(QUrl::fromLocalFile("stop.mp3"));
-			}
+			if (serverStatus != SERVER_DOWN)
+				stateChanged(SERVER_DOWN);
 		}
 }
 
 void MainWindow::playSound(QUrl src){
-	QMediaPlayer *player = new QMediaPlayer();
 	player->setMedia(src);
 	player->play();
 	qDebug() << "played" << src;
 }
 
 void MainWindow::messageCreate(QString msg){
-	PopUp *field = new PopUp;
+	delete field;
+	field = new PopUp;
 	field->setPopupText(msg);
-	field->setTextStyle("font-size: 144px; color: #FFFFFF; font-family: Arial");
+	field->setTextStyle("font-size: 122px; color: #FFFFFF; font-family: Arial");
 	field->show();
 }
 
@@ -180,22 +205,27 @@ void MainWindow::skipData(int *pos, QString response){
 
 bool MainWindow::checkKeyWordInPos(int *pos, QString text, QString key)
 {
-
 	int temp = *pos;
 	for (int i = 0; i < key.length(); i++){
-		qDebug() << text.at(temp+i) << ":" << key.at(i);
 		if (temp+i > text.length() || text.at(temp + i) != key.at(i)) return false;
 	}
 	return true;
 }
 
 void MainWindow::disconnected(){
-	qDebug()<<"disconnect";
 }
 
 MainWindow::~MainWindow()
 {
+	request->close();
+	delete tray;
+	delete player;
+	delete icoDown;
+	delete icoUp;
+	delete icoUml;
+	delete icoUnknown;
 	delete ui;
+	delete request;
 }
 
 void MainWindow::on_mainTable_cellChanged(int row, int column)

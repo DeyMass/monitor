@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "popup.h"
+#include "structures.h"
 #include <QMediaPlayer>
 #include <QFile>
 #include <QDir>
@@ -33,9 +34,22 @@ class MainWindow : public QMainWindow
 
 public:
     explicit MainWindow(QWidget *parent = 0);
+	void	setSettings(mySettings set);
+
     ~MainWindow();
 
 private:
+	//settings
+	int		updDelay = 5000;
+	int		noticeTime = 3;
+	int		noticeFontS = 122;
+	QString	noticeFontC = "#FFFFFF";
+	QString	noticeFontF = "Arial";
+	QString serverIp = "109.202.0.226";
+	QString serverUrl = "http://reg154.point.at-sibir.ru/rest/monitoring";
+	QString serverHost = "reg154.point.at-sibir.ru";
+	int serverPort = 80;
+
 	int serverStatus;
 	QTcpSocket *request;
 	PopUp *field;
@@ -45,16 +59,16 @@ private:
 	QIcon *icoDown;
 	QIcon *icoUml;
 	QIcon *icoUnknown;
+	Ui::MainWindow *ui;
 
-    Ui::MainWindow *ui;
-    QString readName(int *pos, QString response);
-    QString readStatus(int *pos, QString response);
-    void skipData(int *pos, QString response);
-    bool checkKeyWordInPos(int *pos, QString text, QString key);
-    void parse(QString response);
-	void messageCreate(QString msg);
-	void playSound(QUrl src);
-	void stateChanged(int newState);
+	void	skipData(int *pos, QString response);
+	void	parse(QString response);
+	void	messageCreate(QString msg);
+	void	playSound(QUrl src);
+	void	stateChanged(int newState);
+	bool	checkKeyWordInPos(int *pos, QString text, QString key);
+	QString readName(int *pos, QString response);
+	QString readStatus(int *pos, QString response);
 
 private slots:
     void reconnect();

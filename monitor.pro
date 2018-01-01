@@ -30,7 +30,8 @@ SOURCES += \
 
 HEADERS += \
         mainwindow.h \
-    popup.h
+    popup.h \
+    structures.h
 
 FORMS += \
         mainwindow.ui

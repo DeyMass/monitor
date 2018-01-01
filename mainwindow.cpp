@@ -16,7 +16,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	QTimer *reconnect = new QTimer;
 	connect(reconnect, SIGNAL(timeout()), this, SLOT(reconnect()));
-	reconnect->start(1000);
+	reconnect->start(updDelay);
 	QTimer *resize = new QTimer();
 	connect(resize, SIGNAL(timeout()), this, SLOT(resize()));
 	resize->start(125);
@@ -37,7 +37,23 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	tray->setIcon(*icoUnknown);
 	tray->show();
+	stateChanged(SERVER_UNKN);
 	delete pic;
+}
+
+void MainWindow::setSettings(mySettings set)
+{
+	updDelay = set.updateDelay;
+
+	noticeFontS = set.noticeFontSize;
+	noticeFontF = set.noticeFontFamily;
+	noticeFontC = set.noticeFontColor;
+	noticeTime = set.noticeTime;
+
+	serverIp = set.destIp;
+	serverHost = set.destHost;
+	serverPort = set.destPort;
+	serverUrl = set.destUrl;
 }
 
 void MainWindow::resize(){
@@ -48,7 +64,7 @@ void MainWindow::resize(){
 }
 
 void MainWindow::reconnect(){
-	request->connectToHost("109.202.0.226",80);
+	request->connectToHost(serverIp, serverPort);
 }
 
 void MainWindow::refresh(){
@@ -56,8 +72,12 @@ void MainWindow::refresh(){
 }
 
 void MainWindow::connected(){
-	request->write("GET http://reg154.point.at-sibir.ru/rest/monitoring\r\n"
-				   "Host: reg154.point.at-sibir.ru");
+	QString reqStr = "GET " + serverUrl + "\r\nHost: " + serverHost;
+	QByteArray sendStr;
+	for (int i = 0; i < reqStr.length(); i++){
+		sendStr.append(reqStr.at(i));
+	}
+	request->write(sendStr);
 }
 
 void MainWindow::stateChanged(int newState)
@@ -65,25 +85,27 @@ void MainWindow::stateChanged(int newState)
 	switch (newState) {
 	case SERVER_UNKN:
 		tray->setIcon(*icoUnknown);
+		ui->statusPic->setText("UNKNOWN");
+		ui->statusPic->setStyleSheet("color: #0000AA");
 		break;
 	case SERVER_UP:
 		tray->setIcon(*icoUp);
 		ui->statusPic->setText("OK");
-		ui->statusPic->setStyleSheet("color: #00FF00");
+		ui->statusPic->setStyleSheet("color: #00AA00");
 		messageCreate("Server is back online");
 		playSound(QUrl::fromLocalFile(QDir::currentPath() + "/start.mp3"));
 		break;
 	case SERVER_UML:
 		tray->setIcon(*icoUml);
 		ui->statusPic->setText("UML_SYNC");
-		ui->statusPic->setStyleSheet("color: #FFFF00; background: #999999");
+		ui->statusPic->setStyleSheet("color: #AAAA00; background: #999999");
 		messageCreate("UML Synchronization started");
 		playSound(QUrl::fromLocalFile(QDir::currentPath() + "/uml.mp3"));
 		break;
 	case SERVER_DOWN:
 		tray->setIcon(*icoDown);
 		ui->statusPic->setText("DOWN");
-		ui->statusPic->setStyleSheet("color: #FF0000");
+		ui->statusPic->setStyleSheet("color: #AA0000");
 		messageCreate("Server is shutted down");
 		playSound(QUrl::fromLocalFile(QDir::currentPath() + "/stop.mp3"));
 	default:
@@ -91,6 +113,7 @@ void MainWindow::stateChanged(int newState)
 	}
 	serverStatus = newState;
 }
+
 void MainWindow::readyRead(){
 	QString response = request->readAll();
 	if (response.contains("Workflow")){
@@ -98,7 +121,7 @@ void MainWindow::readyRead(){
 			stateChanged(SERVER_UP);
 		parse(response);
 	}
-	else
+	else{
 		if (response.contains("UML")){
 			if (serverStatus != SERVER_UML)
 				stateChanged(SERVER_UML);
@@ -107,6 +130,7 @@ void MainWindow::readyRead(){
 			if (serverStatus != SERVER_DOWN)
 				stateChanged(SERVER_DOWN);
 		}
+	}
 }
 
 void MainWindow::playSound(QUrl src){
@@ -119,7 +143,8 @@ void MainWindow::messageCreate(QString msg){
 	delete field;
 	field = new PopUp;
 	field->setPopupText(msg);
-	field->setTextStyle("font-size: 122px; color: #FFFFFF; font-family: Arial");
+	//добавить setTime!
+	field->setTextStyle("font-size: " + QString::number(noticeFontS) + "px; color: " + noticeFontC + "; font-family: " + noticeFontF);
 	field->show();
 }
 
@@ -236,7 +261,7 @@ void MainWindow::on_mainTable_cellChanged(int row, int column)
 void MainWindow::on_lineEdit_textChanged(const QString &arg1)
 {
 	for (int i = 0; i < ui->mainTable->rowCount(); i++){
-		if (!ui->mainTable->item(i, 0)->text().contains(arg1)) {
+		if (!ui->mainTable->item(i, 0)->text().contains(arg1, Qt::CaseInsensitive)) {
 			ui->mainTable->hideRow(i);
 		}
 		else

@@ -17,6 +17,7 @@ class PopUp : public QWidget
 
 public:
 	explicit PopUp(QWidget *parent = nullptr);
+	void setDelay(int time);
 
 protected:
 	void paintEvent(QPaintEvent *event);    // Фон будет отрисовываться через метод перерисовки
@@ -33,6 +34,7 @@ private slots:
 											 * виден ли виджет, или его необходимо скрыть
 											 * */
 private:
+	int	popupDelay;
 	QLabel label;           // Label с сообщением
 	QGridLayout layout;     // Размещение для лейбла
 	QPropertyAnimation animation;   // Свойство анимации для всплывающего сообщения

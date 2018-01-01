@@ -15,6 +15,7 @@
 #include <QSqlTableModel>
 #include <QTableWidget>
 #include <QSystemTrayIcon>
+#include <QTime>
 
 #define BORDER		70
 #define OR			||

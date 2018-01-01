@@ -18,7 +18,7 @@ PopUp::PopUp(QWidget *parent) : QWidget(parent)
 	connect(&animation, &QAbstractAnimation::finished, this, &PopUp::hide); /* Подключаем сигнал окончания
 																			 * анимации к слоты скрытия
 																			 * */
-
+	popupDelay = 3000;
 	// Настройка текста уведомления
 	label.setAlignment(Qt::AlignHCenter | Qt::AlignVCenter); // Устанавливаем по центру
 	// И настраиваем стили
@@ -35,6 +35,12 @@ PopUp::PopUp(QWidget *parent) : QWidget(parent)
 	// По сигналу таймера будет произведено скрытие уведомления, если оно видимо
 	timer = new QTimer();
 	connect(timer, &QTimer::timeout, this, &PopUp::hideAnimation);
+}
+
+void PopUp::setDelay(int time)
+{
+	popupDelay = time;
+	qDebug()<<"time: "<<popupDelay;
 }
 
 void PopUp::paintEvent(QPaintEvent *event)
@@ -89,13 +95,14 @@ void PopUp::show()
 	QWidget::show();                // Отображаем виджет, который полностью прозрачен
 
 	animation.start();              // И запускаем анимацию
-	timer->start(3000);             // А также стартуем таймер, который запустит скрытие уведомления через 3 секунды
+	qDebug() << "created: " << popupDelay;
+	timer->start(popupDelay);             // А также стартуем таймер, который запустит скрытие уведомления через 3 секунды
 }
 
 void PopUp::hideAnimation()
 {
 	timer->stop();                  // Останавливаем таймер
-	animation.setDuration(1000);    // Настраиваем длительность анимации
+	animation.setDuration(250);    // Настраиваем длительность анимации
 	animation.setStartValue(1.0);   // Стартовое значение будет 1 (полностью непрозрачный виджет)
 	animation.setEndValue(0.0);     // Конечное - полностью прозрачный виджет
 	animation.start();              // И запускаем анимацию

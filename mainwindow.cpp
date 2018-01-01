@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include <QMessageBox>
+#include <QDate>
 #include "ui_mainwindow.h"
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -8,15 +9,13 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 	serverStatus = SERVER_UNKN;
 	ui->setupUi(this);
+	this->setWindowTitle("Monitor");
 
 	request = new QTcpSocket();
 	connect(request, SIGNAL(readyRead()),this,SLOT(readyRead()));
 	connect(request, SIGNAL(connected()), this, SLOT(connected()));
 	connect(request, SIGNAL(disconnected()), this, SLOT(disconnected()));
 
-	QTimer *reconnect = new QTimer;
-	connect(reconnect, SIGNAL(timeout()), this, SLOT(reconnect()));
-	reconnect->start(updDelay);
 	QTimer *resize = new QTimer();
 	connect(resize, SIGNAL(timeout()), this, SLOT(resize()));
 	resize->start(125);
@@ -36,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	icoDown = new QIcon(pic->scaled(25,25));
 
 	tray->setIcon(*icoUnknown);
+	this->setWindowIcon(*icoUnknown);
 	tray->show();
 	stateChanged(SERVER_UNKN);
 	delete pic;
@@ -54,6 +54,15 @@ void MainWindow::setSettings(mySettings set)
 	serverHost = set.destHost;
 	serverPort = set.destPort;
 	serverUrl = set.destUrl;
+	qDebug() << noticeTime;
+	if (noticeTime >= 0)
+		field->setDelay(noticeTime);
+	else
+		field->setDelay(3000);
+
+	QTimer *reconnect = new QTimer;
+	connect(reconnect, SIGNAL(timeout()), this, SLOT(reconnect()));
+	reconnect->start(updDelay);
 }
 
 void MainWindow::resize(){
@@ -85,11 +94,13 @@ void MainWindow::stateChanged(int newState)
 	switch (newState) {
 	case SERVER_UNKN:
 		tray->setIcon(*icoUnknown);
+		this->setWindowIcon(*icoUnknown);
 		ui->statusPic->setText("UNKNOWN");
 		ui->statusPic->setStyleSheet("color: #0000AA");
 		break;
 	case SERVER_UP:
 		tray->setIcon(*icoUp);
+		this->setWindowIcon(*icoUp);
 		ui->statusPic->setText("OK");
 		ui->statusPic->setStyleSheet("color: #00AA00");
 		messageCreate("Server is back online");
@@ -97,6 +108,7 @@ void MainWindow::stateChanged(int newState)
 		break;
 	case SERVER_UML:
 		tray->setIcon(*icoUml);
+		this->setWindowIcon(*icoUml);
 		ui->statusPic->setText("UML_SYNC");
 		ui->statusPic->setStyleSheet("color: #AAAA00; background: #999999");
 		messageCreate("UML Synchronization started");
@@ -104,6 +116,7 @@ void MainWindow::stateChanged(int newState)
 		break;
 	case SERVER_DOWN:
 		tray->setIcon(*icoDown);
+		this->setWindowIcon(*icoDown);
 		ui->statusPic->setText("DOWN");
 		ui->statusPic->setStyleSheet("color: #AA0000");
 		messageCreate("Server is shutted down");
@@ -117,11 +130,13 @@ void MainWindow::stateChanged(int newState)
 void MainWindow::readyRead(){
 	QString response = request->readAll();
 	if (response.contains("Workflow")){
+		ui->mainTable->setEnabled(1);
 		if (serverStatus != SERVER_UP)
 			stateChanged(SERVER_UP);
 		parse(response);
 	}
 	else{
+		ui->mainTable->setDisabled(1);
 		if (response.contains("UML")){
 			if (serverStatus != SERVER_UML)
 				stateChanged(SERVER_UML);
@@ -140,8 +155,6 @@ void MainWindow::playSound(QUrl src){
 }
 
 void MainWindow::messageCreate(QString msg){
-	delete field;
-	field = new PopUp;
 	field->setPopupText(msg);
 	//добавить setTime!
 	field->setTextStyle("font-size: " + QString::number(noticeFontS) + "px; color: " + noticeFontC + "; font-family: " + noticeFontF);
@@ -238,6 +251,7 @@ bool MainWindow::checkKeyWordInPos(int *pos, QString text, QString key)
 }
 
 void MainWindow::disconnected(){
+	qDebug() << "disconnected";
 }
 
 MainWindow::~MainWindow()
@@ -255,15 +269,32 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_mainTable_cellChanged(int row, int column)
 {
-
+	if (column == 0) return;
+	QString msg = "changed " + QString::number(row) + " : " + QString::number(column);
+	messageCreate(msg);
+	QString stateName = ui->mainTable->item(row, 0)->text();
+	QString stateStatus = ui->mainTable->item(row, 1)->text();
+	stateName.chop(1);
+	qDebug() << stateName;
+	QFile *log = new QFile("log.txt");
+	if (log->open(QIODevice::Append)){
+		QByteArray arr;
+		arr.clear();
+		arr.append(QDate::currentDate().toString("dd.MM.yyyy") + "\t" + QTime::currentTime().toString("hh:mm:ss") + "\t" + stateName + "\tentered state:\t" + stateStatus + "\n");
+		log->write(arr);
+	}
+	else{
+		QMessageBox::critical(NULL, "Error", "Unable to create or read file: " + stateName);
+	}
+	log->close();
+	delete log;
 }
 
 void MainWindow::on_lineEdit_textChanged(const QString &arg1)
 {
 	for (int i = 0; i < ui->mainTable->rowCount(); i++){
-		if (!ui->mainTable->item(i, 0)->text().contains(arg1, Qt::CaseInsensitive)) {
+		if (!ui->mainTable->item(i, 0)->text().contains(arg1, Qt::CaseInsensitive))
 			ui->mainTable->hideRow(i);
-		}
 		else
 			ui->mainTable->showRow(i);
 	}

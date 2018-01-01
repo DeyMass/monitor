@@ -9,7 +9,7 @@ void writeDefaults(QSettings *sett){
 	sett->setValue("notice/FontSize", 122);
 	sett->setValue("notice/FontColor","#FFFFFF");
 	sett->setValue("notice/FontFamily","Arial");
-	sett->setValue("notice/Time", 3);
+	sett->setValue("notice/Time", 3000);
 	sett->setValue("server/Ip","109.202.0.226");
 	sett->setValue("server/Port",80);
 	sett->setValue("server/Url","http://reg154.point.at-sibir.ru/rest/monitoring");
@@ -47,6 +47,15 @@ int main(int argc, char *argv[])
 		}
 	}
 	else{
+		settings.updateDelay = 5000;
+		settings.destHost = "reg154.point.at-sibir.ru";
+		settings.destIp = "109.202.0.226";
+		settings.destPort = 80;
+		settings.destUrl = "http://reg154.point.at-sibir.ru/rest/monitoring";
+		settings.noticeFontColor = "#FFFFFF";
+		settings.noticeFontFamily = "Arial";
+		settings.noticeFontSize = 122;
+		settings.noticeTime = 3000;
 		writeDefaults(sett);
 	}
 	MainWindow w;

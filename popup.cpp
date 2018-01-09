@@ -40,7 +40,6 @@ PopUp::PopUp(QWidget *parent) : QWidget(parent)
 void PopUp::setDelay(int time)
 {
 	popupDelay = time;
-	qDebug()<<"time: "<<popupDelay;
 }
 
 void PopUp::paintEvent(QPaintEvent *event)
@@ -95,7 +94,6 @@ void PopUp::show()
 	QWidget::show();                // Отображаем виджет, который полностью прозрачен
 
 	animation.start();              // И запускаем анимацию
-	qDebug() << "created: " << popupDelay;
 	timer->start(popupDelay);             // А также стартуем таймер, который запустит скрытие уведомления через 3 секунды
 }
 

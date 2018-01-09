@@ -39,6 +39,11 @@ public:
 
     ~MainWindow();
 
+	void logger(QString stateStatus, QString stateName);
+
+protected:
+	void changeEvent(QEvent *event);
+
 private:
 	//settings
 	int		updDelay = 5000;
@@ -67,14 +72,24 @@ private:
 	void	messageCreate(QString msg);
 	void	playSound(QUrl src);
 	void	stateChanged(int newState);
+	void	clearTable();
 	bool	checkKeyWordInPos(int *pos, QString text, QString key);
 	QString readName(int *pos, QString response);
 	QString readStatus(int *pos, QString response);
 
+	//logger
+	void logger(QString event);
+	QString getTime();
+
+	void connectionHandler();
+	void resizeTimer();
+	void loadIconPics();
+
 private slots:
+	void trayIconHandler(QSystemTrayIcon::ActivationReason reason);
     void reconnect();
     void connected();
-    void readyRead();
+	void readyRead();
     void disconnected();
     void refresh();
 	void resize();

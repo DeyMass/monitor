@@ -57,6 +57,7 @@ private:
 	int serverPort = 80;
 
 	int serverStatus;
+	int showMessages;
 	QTcpSocket *request;
 	PopUp *field;
 	QMediaPlayer *player;
@@ -65,8 +66,12 @@ private:
 	QIcon *icoDown;
 	QIcon *icoUml;
 	QIcon *icoUnknown;
+	QIcon *icoSemiUp;
+	QIcon *icoSemiDown;
+	QIcon *icoSemiUnkn;
 	Ui::MainWindow *ui;
 
+	void	firstCheck();
 	void	skipData(int *pos, QString response);
 	void	parse(QString response);
 	void	messageCreate(QString msg);

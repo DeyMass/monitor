@@ -5,5 +5,8 @@
         <file>rsrc/img/trayOK.jpg</file>
         <file>rsrc/img/trayUML.jpg</file>
         <file>rsrc/img/trayUNKNOWN.jpg</file>
+        <file>rsrc/img/trayOK_AND_FAIL.jpg</file>
+        <file>rsrc/img/trayOK_AND_SOMETHING_WRONG.jpg</file>
+        <file>rsrc/img/trayOK_AND_UNKNOWN.jpg</file>
     </qresource>
 </RCC>

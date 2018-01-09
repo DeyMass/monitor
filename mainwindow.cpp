@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include <QMessageBox>
 #include <QDate>
+#include <QMenu>
 #include "ui_mainwindow.h"
 
 void MainWindow::connectionHandler()
@@ -29,7 +30,12 @@ void MainWindow::loadIconPics()
 	icoUml = new QIcon(pic->scaled(25,25));
 	pic = new QPixmap(":/img/rsrc/img/trayDOWN.jpg");
 	icoDown = new QIcon(pic->scaled(25,25));
-
+	pic = new QPixmap(":/img/rsrc/img/trayOK_AND_FAIL.jpg");
+	icoSemiDown = new QIcon(pic->scaled(25,25));
+	pic = new QPixmap(":/img/rsrc/img/trayOK_AND_UNKNOWN.jpg");
+	icoSemiUnkn = new QIcon(pic->scaled(25,25));
+	pic = new QPixmap(":/img/rsrc/img/trayOK_AND_SOMETHING_WRONG.jpg");
+	icoSemiUp = new QIcon(pic->scaled(25,25));
 	delete pic;
 }
 
@@ -38,6 +44,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui(new Ui::MainWindow)
 {
 	serverStatus = SERVER_UNKN;
+	showMessages = 0;
 	ui->setupUi(this);
 	this->setWindowTitle("Monitor");
 	QString log = getTime() + "\tNew monitoring session started\n";
@@ -55,6 +62,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	tray->setIcon(*icoUnknown);
 	this->setWindowIcon(*icoUnknown);
+	tray->showMessage("Hello world", "world, says hello to you");
 	connect(tray, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this, SLOT(trayIconHandler(QSystemTrayIcon::ActivationReason)));
 	tray->show();
 	stateChanged(SERVER_UNKN);
@@ -180,6 +188,7 @@ void MainWindow::readyRead(){
 			stateChanged(SERVER_UNKN);
 			QString log = getTime() + "\tMonitoring failed\n";
 			logger(log);
+			showMessages = 0;
 			return;
 		}
 	}
@@ -190,6 +199,8 @@ void MainWindow::readyRead(){
 			log = getTime() + "\tSERVER" + "\tentered state:\tUP\n";
 		}
 		parse(response);
+		firstCheck();
+		showMessages = 1;
 	}
 	else{
 		ui->mainTable->setDisabled(1);
@@ -197,6 +208,7 @@ void MainWindow::readyRead(){
 			if (serverStatus != SERVER_UML){
 				stateChanged(SERVER_UML);
 				log = getTime() + "\tSERVER" + "\tentered state:\tUML_SYNC\n";
+				showMessages = 0;
 			}
 		}
 		else {
@@ -204,6 +216,7 @@ void MainWindow::readyRead(){
 				clearTable();
 				stateChanged(SERVER_DOWN);
 				log = getTime() + "\tSERVER" + "\tentered state:\tDOWN\n";
+				showMessages = 0;
 			}
 		}
 	}
@@ -284,7 +297,8 @@ QString MainWindow::readName(int *pos, QString response){
 			OR checkKeyWordInPos(&temp, response, "Someth")
 			OR checkKeyWordInPos(&temp, response, "FAIL")
 			OR checkKeyWordInPos(&temp, response, ":Connections")
-			OR checkKeyWordInPos(&temp, response, "UNKNOWN"))
+			OR checkKeyWordInPos(&temp, response, "UNKNOWN")
+			OR checkKeyWordInPos(&temp, response, "TIMEOUT_FAIL"))
 			break;
 		txt += response.at(temp);
 	}
@@ -364,6 +378,9 @@ void MainWindow::on_mainTable_cellChanged(int row, int column)
 	//-----
 	QString stateName = ui->mainTable->item(row, 0)->text();
 	QString stateStatus = ui->mainTable->item(row, 1)->text();
+	//messageCreate(stateName + " entered state: " + stateStatus);
+	if (showMessages == 1 && !stateName.contains("Connect"))
+		tray->showMessage("Update", stateName + " entered state: " + stateStatus);
 	stateName.chop(1);
 	msg = getTime() + "\t" + stateName + "\tentered state:\t" + stateStatus + "\n";
 	logger(msg);
@@ -371,6 +388,26 @@ void MainWindow::on_mainTable_cellChanged(int row, int column)
 
 QString MainWindow::getTime(){
 	return QDate::currentDate().toString("dd.MM.yyyy") + "\t" + QTime::currentTime().toString("hh:mm:ss");
+}
+
+void MainWindow::firstCheck(){
+	for (int i = 0; i < ui->mainTable->rowCount(); i++){
+		QString stateStatus = ui->mainTable->item(i, 1)->text();
+		if (stateStatus.contains("FAIL")){
+			tray->setIcon(*icoSemiDown);
+			this->setWindowIcon(*icoSemiDown);
+			break;
+		}
+		else if(stateStatus.contains("Something")){
+			tray->setIcon(*icoSemiUp);
+			this->setWindowIcon(*icoSemiUp);
+		}
+		else if (stateStatus.contains("UNKNOWN")){
+			tray->setIcon(*icoSemiUnkn);
+			this->setWindowIcon(*icoSemiUnkn);
+		}
+	}
+
 }
 
 void MainWindow::on_lineEdit_textChanged(const QString &arg1)

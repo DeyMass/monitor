@@ -1,7 +1,9 @@
-#include "mainwindow.h"
 #include <QMessageBox>
 #include <QDate>
 #include <QMenu>
+#include <QDir>
+#include "mainwindow.h"
+#include "statistics.h"
 #include "ui_mainwindow.h"
 
 void MainWindow::connectionHandler()
@@ -46,9 +48,29 @@ MainWindow::MainWindow(QWidget *parent) :
 	serverStatus = SERVER_UNKN;
 	showMessages = 0;
 	ui->setupUi(this);
+
+	QDir* dir = new QDir(QDir::current());
+	dir->mkdir("logs");
+	dir->cd("logs");
+	QFile *slog = new QFile("./logs/serverLog.txt");
+	slog->open(QIODevice::Append);
+	slog->close();
+	delete slog;
+	if (dir->count() != 2){
+		for (unsigned int i = 2; i < dir->count(); i++){
+			//qDebug() << dir->entryList().at(i);
+			QFile *f = new QFile("./logs/" + dir->entryList().at(i));
+			if (!f->open(QIODevice::Append))
+				QMessageBox::critical(NULL, "Error", "Unable to create or read file: log.txt");
+			QByteArray arr;
+			arr.append(getTime() + "\tNew monitoring session started\n");
+			f->write(arr);
+			f->close();
+			delete f;
+		}
+	}
+
 	this->setWindowTitle("Monitor");
-	QString log = getTime() + "\tNew monitoring session started\n";
-	logger(log);
 
 	connectionHandler();
 
@@ -186,8 +208,10 @@ void MainWindow::readyRead(){
 		if (serverStatus != SERVER_UNKN){
 			clearTable();
 			stateChanged(SERVER_UNKN);
+			/*
 			QString log = getTime() + "\tMonitoring failed\n";
 			logger(log);
+			*/
 			showMessages = 0;
 			return;
 		}
@@ -323,7 +347,7 @@ QString MainWindow::readStatus(int *pos, QString response)
 
 void MainWindow::logger(QString event)
 {
-	QFile *log = new QFile("log.txt");
+	QFile *log = new QFile("./logs/serverLog.txt");
 	if (log->open(QIODevice::Append)){
 		QByteArray arr;
 		arr.clear();
@@ -358,6 +382,24 @@ void MainWindow::disconnected(){
 MainWindow::~MainWindow()
 {
 	request->close();
+
+	QDir* dir = new QDir(QDir::current());
+	if (!dir->cd("logs"))
+		QMessageBox::critical(NULL, "Error", "logs cannot be written! (unable to read logs directory)");
+	else{
+		if (dir->count() != 2){
+			for (unsigned int i = 2; i < dir->count(); i++){
+				QFile *f = new QFile("./logs/" + dir->entryList().at(i));
+				if (!f->open(QIODevice::Append))
+					QMessageBox::critical(NULL, "Error", "Unable to create or read file: " + dir->entryList().at(i));
+				QByteArray arr;
+				arr.append(getTime() + "\tMonitoring session is over\n");
+				f->write(arr);
+				f->close();
+				delete f;
+			}
+		}
+	}
 	delete tray;
 	delete player;
 	delete icoDown;
@@ -374,16 +416,30 @@ void MainWindow::on_mainTable_cellChanged(int row, int column)
 	if (ui->mainTable->item(row, column)->text() == "") return;
 	//-----
 	QString msg = "changed " + QString::number(row) + " : " + QString::number(column);
-	qDebug() << msg;
+	//qDebug() << msg;
 	//-----
 	QString stateName = ui->mainTable->item(row, 0)->text();
 	QString stateStatus = ui->mainTable->item(row, 1)->text();
 	//messageCreate(stateName + " entered state: " + stateStatus);
-	if (showMessages == 1 && !stateName.contains("Connect"))
+
+
+	if (showMessages == 1 && !stateName.contains("Connect") && !ui->mainTable->isRowHidden(row))
 		tray->showMessage("Update", stateName + " entered state: " + stateStatus);
 	stateName.chop(1);
 	msg = getTime() + "\t" + stateName + "\tentered state:\t" + stateStatus + "\n";
-	logger(msg);
+	QFile *log = new QFile("./logs/"+stateName+".txt");
+	if (!log->open(QIODevice::Append)){
+		QMessageBox::critical(NULL, "Error", "Unable to create or read file: /logs/" + stateName + " please, restart program");
+		this->close();
+	}
+	else{
+		QByteArray arr;
+		arr.clear();
+		arr.append(msg);
+		log->write(arr);
+	}
+	log->close();
+	delete log;
 }
 
 QString MainWindow::getTime(){
@@ -391,23 +447,30 @@ QString MainWindow::getTime(){
 }
 
 void MainWindow::firstCheck(){
+	int everythingOk = 1;
 	for (int i = 0; i < ui->mainTable->rowCount(); i++){
 		QString stateStatus = ui->mainTable->item(i, 1)->text();
 		if (stateStatus.contains("FAIL")){
 			tray->setIcon(*icoSemiDown);
 			this->setWindowIcon(*icoSemiDown);
+			everythingOk = 0;
 			break;
 		}
 		else if(stateStatus.contains("Something")){
 			tray->setIcon(*icoSemiUp);
 			this->setWindowIcon(*icoSemiUp);
+			everythingOk = 0;
 		}
 		else if (stateStatus.contains("UNKNOWN")){
 			tray->setIcon(*icoSemiUnkn);
 			this->setWindowIcon(*icoSemiUnkn);
+			everythingOk = 0;
 		}
 	}
-
+	if (everythingOk){
+		this->setWindowIcon(*icoUp);
+		tray->setIcon(*icoUp);
+	}
 }
 
 void MainWindow::on_lineEdit_textChanged(const QString &arg1)
@@ -418,4 +481,11 @@ void MainWindow::on_lineEdit_textChanged(const QString &arg1)
 		else
 			ui->mainTable->showRow(i);
 	}
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+	Statistics *stat = new Statistics;
+	stat->show();
+
 }

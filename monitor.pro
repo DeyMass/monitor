@@ -26,15 +26,18 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
-    popup.cpp
+    popup.cpp \
+    statistics.cpp
 
 HEADERS += \
         mainwindow.h \
     popup.h \
-    structures.h
+    structures.h \
+    statistics.h
 
 FORMS += \
-        mainwindow.ui
+        mainwindow.ui \
+    statistics.ui
 
 DISTFILES +=
 

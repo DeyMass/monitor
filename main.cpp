@@ -1,3 +1,4 @@
+#include "statistics.h"
 #include "mainwindow.h"
 #include <QApplication>
 #include <QSettings>
@@ -31,7 +32,6 @@ int main(int argc, char *argv[])
 		settings.noticeFontFamily = sett->value("notice/FontFamily").toString();
 		settings.noticeFontColor = sett->value("notice/FontColor").toString();
 		settings.noticeTime = sett->value("notice/Time").toInt();
-
 
 		settings.destPort = sett->value("/server/Port").toInt();
 		settings.destHost = sett->value("/server/Host").toString();

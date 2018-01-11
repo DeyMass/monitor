@@ -100,6 +100,7 @@ private slots:
 	void resize();
 	void on_mainTable_cellChanged(int row, int column);
 	void on_lineEdit_textChanged(const QString &arg1);
+	void on_pushButton_clicked();
 };
 
 #endif // MAINWINDOW_H
